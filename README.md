@@ -1,4 +1,6 @@
-# [Slither, the smart contract static analyzer](https://crytic.github.io/slither/slither.html)
+
+
+# [Slitheryn, the smart contract static analyzer](https://www.github.com/jasidok/slitheryn.html)
 
 <img src="https://raw.githubusercontent.com/crytic/slither/master/logo.png" alt="Slither Static Analysis Framework Logo" width="500" />
 
@@ -12,7 +14,7 @@
 > [![Slack Status](https://slack.empirehacking.nyc/badge.svg)](https://slack.empirehacking.nyc/)
 > > <sub><i>- Discussions and Support </i></sub>
 
-**Slither** is a Solidity & Vyper static analysis framework written in Python3. It runs a suite of vulnerability detectors, prints visual information about contract details, and provides an API to easily write custom analyses. Slither enables developers to find vulnerabilities, enhance their code comprehension, and quickly prototype custom analyses.
+**Slitheryn** is a Solidity & Vyper static analysis framework written in Python3. It runs a suite of vulnerability detectors, prints visual information about contract details, and provides an API to easily write custom analyses. Slither enables developers to find vulnerabilities, enhance their code comprehension, and quickly prototype custom analyses.
 
 * [Features](#features)
 * [Usage](#usage)
@@ -53,7 +55,7 @@
 Run Slither on a Hardhat/Foundry/Dapp/Brownie application:
 
 ```console
-slither .
+slitheryn .
 ```
 
 This is the preferred option if your project has dependencies as Slither relies on the underlying compilation framework to compile source code.
@@ -61,7 +63,7 @@ This is the preferred option if your project has dependencies as Slither relies 
 However, you can run Slither on a single file that does not import dependencies:
 
 ```console
-slither tests/uninitialized.sol
+slitheryn tests/uninitialized.sol
 ```
 
 ## How to install
@@ -73,29 +75,29 @@ If you're **not** going to use one of the [supported compilation frameworks](htt
 ### Using Pip
 
 ```console
-python3 -m pip install slither-analyzer
+python3 -m pip install slitheryn-analyzer
 ```
 
 #### How to upgrade
 
 ```console
-python3 -m pip install --upgrade slither-analyzer
+python3 -m pip install --upgrade slitheryn-analyzer
 ```
 
 ### Using Brew
 
 ```console
-brew install slither-analyzer
+brew install slitheryn-analyzer
 ```
 
 ### Using Git
 
 ```bash
-git clone https://github.com/crytic/slither.git && cd slither
+git clone https://github.com/jasidok/slitheryn.git && cd slitheryn
 python3 -m pip install .
 ```
 
-We recommend using a Python virtual environment, as detailed in the [Developer Installation Instructions](https://github.com/crytic/slither/wiki/Developer-installation), if you prefer to install Slither via git.
+We recommend using a Python virtual environment, as detailed in the [Developer Installation Instructions](https://github.com/crytic/slither/wiki/Developer-installation), if you prefer to install Slitheryn via git.
 
 ### Using Docker
 
