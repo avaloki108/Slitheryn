@@ -1,0 +1,38 @@
+[
+  {
+    "model": "phi4-reasoning:latest",
+    "score": 100,
+    "time": 27.202404975891113,
+    "findings": [
+      "reentrancy",
+      "call_state_issue",
+      "cei_pattern",
+      "fix_suggested"
+    ],
+    "response_preview": "<think>We are asked to analyze a smart contract for security vulnerabilities. The code is:\n\n```\ncontract VulnerableBank {\n    mapping(address => uint) public balances;\n    \n    function withdraw() public {\n        uint amount = balances[msg.sender];\n        (bool sent, ) = msg.sender.call{value: amo..."
+  },
+  {
+    "model": "magistral:latest",
+    "score": 100,
+    "time": 41.057257413864136,
+    "findings": [
+      "reentrancy",
+      "call_state_issue",
+      "cei_pattern",
+      "fix_suggested"
+    ],
+    "response_preview": "<think>\nAlright, I have this smart contract called `VulnerableBank`. It has a mapping to store balances for different addresses and a `withdraw` function. Let's break it down.\n\nFirst, the `balances` mapping is public, so it has an automatically generated getter function. That's fine, but not directl..."
+  },
+  {
+    "model": "qwen3:30b-a3b",
+    "score": 100,
+    "time": 34.11449408531189,
+    "findings": [
+      "reentrancy",
+      "call_state_issue",
+      "cei_pattern",
+      "fix_suggested"
+    ],
+    "response_preview": "<think>\nOkay, let's take a look at this smart contract. The user is asking about security vulnerabilities, specifically reentrancy and state management issues. The contract is called VulnerableBank, and it has a mapping of addresses to uints for balances. The withdraw function allows a user to withd..."
+  }
+]

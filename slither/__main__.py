@@ -787,6 +787,22 @@ def main_impl(
     """
     # Set logger of Slither to info, to catch warnings related to the arg parsing
     logger.setLevel(logging.INFO)
+    
+    # Initialize AI system
+    try:
+        from slither.ai.config import setup_ai_logging, get_ai_config
+        setup_ai_logging()
+        ai_config = get_ai_config()
+        if ai_config.is_ai_enabled():
+            logger.info("🤖 AI-Enhanced Analysis enabled with SmartLLM-OG")
+            logger.info(f"Primary model: {ai_config.config.primary_model}")
+        else:
+            logger.info("AI-Enhanced Analysis disabled")
+    except ImportError:
+        logger.warning("AI components not available")
+    except Exception as e:
+        logger.warning(f"AI initialization warning: {e}")
+    
     args = parse_args(all_detector_classes, all_printer_classes)
 
     cp: Optional[cProfile.Profile] = None

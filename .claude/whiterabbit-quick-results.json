@@ -1,0 +1,14 @@
+[
+  {
+    "model": "whiterabbitneo:latest",
+    "score": 100,
+    "time": 12.514946699142456,
+    "found_reentrancy": true
+  },
+  {
+    "model": "neo:latest",
+    "score": 70,
+    "time": 18.766490936279297,
+    "found_reentrancy": true
+  }
+]

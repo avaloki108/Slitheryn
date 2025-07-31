@@ -106,3 +106,6 @@ from .functions.pyth_deprecated_functions import PythDeprecatedFunctions
 from .functions.optimism_deprecation import OptimismDeprecation
 
 # from .statements.unused_import import UnusedImport
+
+# AI-enhanced detectors
+from .ai.ai_enhanced_analysis import AIEnhancedAnalysis

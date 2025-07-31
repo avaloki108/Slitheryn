@@ -1,0 +1,18 @@
+[
+  {
+    "model": "deepseek-coder:33b-instruct",
+    "error": "HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=60)"
+  },
+  {
+    "model": "deepseek-r1:7b-qwen-distill-q8_0",
+    "score": 20,
+    "time": 15.450244903564453,
+    "response_preview": "<think>\nOkay, so I'm trying to analyze this smart contract for security vulnerabilities. The code provided is a withdraw function in a contract called VulnerableBank. Let me go through it step by step..."
+  },
+  {
+    "model": "devstral:latest",
+    "score": 80,
+    "time": 38.076627254486084,
+    "response_preview": "Let's analyze the provided smart contract for security vulnerabilities:\n\n```solidity\ncontract VulnerableBank {\n    mapping(address => uint) public balances;\n\n    function withdraw() public {\n        u..."
+  }
+]

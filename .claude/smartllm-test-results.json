@@ -1,0 +1,26 @@
+[
+  {
+    "model": "smartllm:latest",
+    "score": 85,
+    "time": 22.962783575057983,
+    "vulnerabilities_found": [
+      "reentrancy",
+      "flash_loan_exploit",
+      "state_management",
+      "economic_attack"
+    ],
+    "response_length": 3956
+  },
+  {
+    "model": "SmartLLM-OG:latest",
+    "score": 100,
+    "time": 50.82764220237732,
+    "vulnerabilities_found": [
+      "reentrancy",
+      "flash_loan_exploit",
+      "state_management",
+      "economic_attack"
+    ],
+    "response_length": 3684
+  }
+]
