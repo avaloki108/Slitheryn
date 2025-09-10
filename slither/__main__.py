@@ -84,7 +84,46 @@ def process_single(
     if args.sarif_triage:
         slither.sarif_triage = args.sarif_triage
 
-    return _process(slither, detector_classes, printer_classes)
+    # Check if multi-agent analysis is requested
+    if getattr(args, 'multi_agent', False):
+        # Prepare multi-agent arguments
+        multi_agent_args = {
+            'enable_multi_agent': True,
+            'agent_types': getattr(args, 'agent_types', 'vulnerability,exploit,fix,economic,governance'),
+            'analysis_type': getattr(args, 'analysis_type', 'comprehensive'),
+            'consensus_threshold': getattr(args, 'consensus_threshold', 0.7),
+            'parallel_analysis': not getattr(args, 'no_parallel_agents', False)
+        }
+        
+        # Run async multi-agent analysis
+        import asyncio
+        
+        async def run_multi_agent():
+            return await _process_with_multi_agent(
+                slither, detector_classes, printer_classes, multi_agent_args
+            )
+        
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            result = loop.run_until_complete(run_multi_agent())
+            loop.close()
+            
+            # Extract results (ignore multi_agent_result for now in standard return)
+            slither_result, results_detectors, results_printers, analyzed_contracts_count, multi_agent_result = result
+            
+            # Store multi-agent results in slither object for later use
+            if multi_agent_result:
+                slither._multi_agent_results = multi_agent_result
+            
+            return slither_result, results_detectors, results_printers, analyzed_contracts_count
+            
+        except Exception as e:
+            logger.error(f"Multi-agent analysis failed: {e}")
+            logger.info("Falling back to standard analysis...")
+            return _process(slither, detector_classes, printer_classes)
+    else:
+        return _process(slither, detector_classes, printer_classes)
 
 
 def process_all(
@@ -145,6 +184,110 @@ def _process(
         results_printers.extend(printer_results)
 
     return slither, results_detectors, results_printers, analyzed_contracts_count
+
+
+async def _process_with_multi_agent(
+    slither: Slither,
+    detector_classes: List[Type[AbstractDetector]],
+    printer_classes: List[Type[AbstractPrinter]],
+    multi_agent_args: dict,
+) -> Tuple[Slither, List[Dict], List[Output], int, Optional[Dict]]:
+    """
+    Enhanced process function that supports multi-agent AI analysis
+    """
+    # Run standard analysis first
+    slither_result, results_detectors, results_printers, analyzed_contracts_count = _process(
+        slither, detector_classes, printer_classes
+    )
+    
+    multi_agent_result = None
+    
+    # Run multi-agent analysis if enabled
+    if multi_agent_args.get('enable_multi_agent', False):
+        try:
+            from slither.ai.config import get_ai_config
+            from slither.ai.ollama_client import OllamaClient
+            
+            logger.info("🤖 Starting multi-agent AI analysis...")
+            
+            ai_config = get_ai_config()
+            
+            # Update config with CLI arguments
+            config_updates = {}
+            if 'agent_types' in multi_agent_args:
+                agent_types = [t.strip() for t in multi_agent_args['agent_types'].split(',')]
+                config_updates['agent_types'] = agent_types
+            if 'consensus_threshold' in multi_agent_args:
+                config_updates['consensus_threshold'] = multi_agent_args['consensus_threshold']
+            if 'parallel_analysis' in multi_agent_args:
+                config_updates['parallel_analysis'] = multi_agent_args['parallel_analysis']
+            
+            if config_updates:
+                ai_config.update_config(**config_updates)
+            
+            # Initialize Ollama client
+            ollama_client = OllamaClient(ai_config.get_ollama_url())
+            
+            # Prepare contract code for analysis
+            contracts_analyzed = []
+            
+            for compilation_unit in slither.compilation_units:
+                for contract in compilation_unit.contracts:
+                    if contract.is_interface or not contract.source_mapping:
+                        continue
+                    
+                    try:
+                        # Get contract source code
+                        with open(str(contract.source_mapping.filename.absolute), 'r') as f:
+                            contract_code = f.read()
+                        
+                        # Run multi-agent analysis
+                        analysis_type = multi_agent_args.get('analysis_type', 'comprehensive')
+                        
+                        result = await ollama_client.analyze_contract_multi_agent(
+                            contract_code,
+                            contract.name,
+                            analysis_type
+                        )
+                        
+                        if result and result.get('multi_agent'):
+                            contracts_analyzed.append({
+                                'contract_name': contract.name,
+                                'file_path': str(contract.source_mapping.filename.absolute),
+                                'multi_agent_result': result
+                            })
+                            
+                            logger.info(f"✅ Multi-agent analysis completed for {contract.name}")
+                            logger.info(f"   Found {len(result['consensus_vulnerabilities'])} consensus vulnerabilities")
+                            
+                    except Exception as e:
+                        logger.warning(f"Multi-agent analysis failed for {contract.name}: {e}")
+                        continue
+            
+            if contracts_analyzed:
+                multi_agent_result = {
+                    'total_contracts_analyzed': len(contracts_analyzed),
+                    'contracts': contracts_analyzed,
+                    'analysis_type': analysis_type,
+                    'enabled_agents': multi_agent_args.get('agent_types', '').split(',')
+                }
+                
+                logger.info(f"🎯 Multi-agent analysis summary:")
+                logger.info(f"   Contracts analyzed: {len(contracts_analyzed)}")
+                
+                # Add summary to results
+                total_consensus_vulns = sum(
+                    len(c['multi_agent_result']['consensus_vulnerabilities']) 
+                    for c in contracts_analyzed
+                )
+                logger.info(f"   Total consensus vulnerabilities: {total_consensus_vulns}")
+            
+        except ImportError:
+            logger.warning("Multi-agent system not available (integration not found)")
+        except Exception as e:
+            logger.error(f"Multi-agent analysis error: {e}")
+    
+    return slither_result, results_detectors, results_printers, analyzed_contracts_count, multi_agent_result
 
 
 # endregion
@@ -621,6 +764,43 @@ def parse_args(
 
     codex.init_parser(parser)
 
+    # Multi-Agent AI Analysis options
+    group_multi_agent = parser.add_argument_group("Multi-Agent AI Analysis")
+    group_multi_agent.add_argument(
+        "--multi-agent",
+        help="Enable multi-agent AI analysis (requires AI system)",
+        action="store_true",
+        default=defaults_flag_in_config.get("multi_agent", False),
+    )
+    
+    group_multi_agent.add_argument(
+        "--agent-types",
+        help="Comma-separated list of agent types to use: vulnerability,exploit,fix,economic,governance",
+        action="store",
+        default=defaults_flag_in_config.get("agent_types", "vulnerability,exploit,fix,economic,governance"),
+    )
+    
+    group_multi_agent.add_argument(
+        "--analysis-type",
+        help="Type of multi-agent analysis: quick, comprehensive, specialized",
+        choices=["quick", "comprehensive", "specialized"],
+        default=defaults_flag_in_config.get("analysis_type", "comprehensive"),
+    )
+    
+    group_multi_agent.add_argument(
+        "--consensus-threshold",
+        help="Consensus threshold for vulnerability agreement (0.0-1.0)",
+        type=float,
+        default=defaults_flag_in_config.get("consensus_threshold", 0.7),
+    )
+    
+    group_multi_agent.add_argument(
+        "--no-parallel-agents",
+        help="Disable parallel agent execution",
+        action="store_true",
+        default=False,
+    )
+
     # debugger command
     parser.add_argument("--debug", help=argparse.SUPPRESS, action="store_true", default=False)
 
@@ -932,6 +1112,51 @@ def main_impl(
             output_results_to_markdown(
                 results_detectors, args.checklist_limit, args.show_ignored_findings
             )
+
+        # Output multi-agent analysis results if available
+        if getattr(args, 'multi_agent', False):
+            multi_agent_results = []
+            for slither_instance in slither_instances:
+                if hasattr(slither_instance, '_multi_agent_results') and slither_instance._multi_agent_results:
+                    multi_agent_results.append(slither_instance._multi_agent_results)
+            
+            if multi_agent_results:
+                logger.info("\n" + "="*80)
+                logger.info("🤖 MULTI-AGENT AI ANALYSIS RESULTS")
+                logger.info("="*80)
+                
+                total_contracts = sum(result['total_contracts_analyzed'] for result in multi_agent_results)
+                total_vulnerabilities = 0
+                
+                for result in multi_agent_results:
+                    for contract in result['contracts']:
+                        multi_agent_result = contract['multi_agent_result']
+                        consensus_vulns = multi_agent_result['consensus_vulnerabilities']
+                        total_vulnerabilities += len(consensus_vulns)
+                        
+                        if consensus_vulns:
+                            logger.info(f"\n📄 Contract: {contract['contract_name']}")
+                            logger.info(f"   File: {contract['file_path']}")
+                            logger.info(f"   Consensus Score: {multi_agent_result['consensus_score']:.2f}")
+                            logger.info(f"   Models Used: {', '.join(multi_agent_result['models_used'])}")
+                            logger.info(f"   Consensus Vulnerabilities ({len(consensus_vulns)}):")
+                            
+                            for vuln in consensus_vulns:
+                                severity = multi_agent_result['final_severity_scores'].get(vuln, 'Unknown')
+                                logger.info(f"     • [{severity}] {vuln}")
+                        else:
+                            logger.info(f"\n📄 Contract: {contract['contract_name']} - ✅ No consensus vulnerabilities")
+                
+                logger.info(f"\n🎯 Multi-Agent Summary:")
+                logger.info(f"   Total contracts analyzed: {total_contracts}")
+                logger.info(f"   Total consensus vulnerabilities: {total_vulnerabilities}")
+                logger.info(f"   Analysis type: {multi_agent_results[0].get('analysis_type', 'comprehensive')}")
+                logger.info(f"   Agents used: {', '.join(multi_agent_results[0].get('enabled_agents', []))}")
+                logger.info("="*80)
+                
+                # Add multi-agent results to JSON output if enabled
+                if outputting_json or outputting_zip:
+                    json_results["multi_agent_analysis"] = multi_agent_results
 
         # Don't print the number of result for printers
         if number_contracts == 0:
