@@ -25,6 +25,13 @@ class AIModelConfig:
     confidence_threshold: float = 0.7
     analysis_types: Dict[str, bool] = None
     
+    # Multi-Agent System Configuration
+    enable_multi_agent: bool = True
+    agent_types: list = None
+    consensus_threshold: float = 0.7
+    parallel_analysis: bool = True
+    max_workers: int = 4
+    
     def __post_init__(self):
         if self.analysis_types is None:
             self.analysis_types = {
@@ -34,6 +41,15 @@ class AIModelConfig:
                 "severity_assessment": True,
                 "false_positive_reduction": True
             }
+        
+        if self.agent_types is None:
+            self.agent_types = [
+                "vulnerability",
+                "exploit", 
+                "fix",
+                "economic",
+                "governance"
+            ]
 
 class AIConfigManager:
     """Manages AI configuration for Slitheryn"""
@@ -123,6 +139,22 @@ class AIConfigManager:
             'max_tokens': self._config.max_tokens,
             'timeout': self._config.timeout,
             'confidence_threshold': self._config.confidence_threshold
+        }
+    
+    def is_multi_agent_enabled(self) -> bool:
+        """Check if multi-agent analysis is enabled"""
+        return getattr(self._config, 'enable_multi_agent', True)
+    
+    def get_multi_agent_config(self) -> Dict[str, Any]:
+        """Get multi-agent system configuration"""
+        return {
+            'enable_multi_agent': getattr(self._config, 'enable_multi_agent', True),
+            'agent_types': getattr(self._config, 'agent_types', [
+                'vulnerability', 'exploit', 'fix', 'economic', 'governance'
+            ]),
+            'consensus_threshold': getattr(self._config, 'consensus_threshold', 0.7),
+            'parallel_analysis': getattr(self._config, 'parallel_analysis', True),
+            'max_workers': getattr(self._config, 'max_workers', 4)
         }
 
 # Global config manager instance
