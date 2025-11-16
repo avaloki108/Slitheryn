@@ -47,3 +47,26 @@ Commands use the same configuration system as the main multi-agent audit system:
 - `.slitheryn/ai_config.json` for global settings
 - Command-line arguments for runtime overrides
 - Environment variables for CI/CD integration
+# Commands Integration
+
+This directory contains command-line tools and utilities from the scaling-octo-garbanzo repository.
+
+## Available Commands
+
+[To be populated with actual commands from the source repository]
+
+## Usage
+
+[Usage instructions to be added]
+
+## Integration with Slitheryn
+
+These commands extend Slitheryn's functionality with additional tools for web3 analysis and auditing.
+
+## Notes
+
+This is a placeholder structure. The actual implementation would include:
+- Command-line scripts
+- Utility functions
+- Configuration files
+- Help documentation
