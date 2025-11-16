@@ -14,5 +14,16 @@
     "fix_recommendations": true,
     "severity_assessment": true,
     "false_positive_reduction": true
-  }
+  },
+  "enable_multi_agent": true,
+  "agent_types": [
+    "vulnerability",
+    "exploit",
+    "fix",
+    "economic",
+    "governance"
+  ],
+  "consensus_threshold": 0.7,
+  "parallel_analysis": true,
+  "max_workers": 4
 }

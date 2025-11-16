@@ -1,11 +1,12 @@
 """
 Ollama API client for SmartLLM integration with Slitheryn
-Provides AI-powered smart contract security analysis
+Provides AI-powered smart contract security analysis with multi-agent capabilities
 """
 
 import json
 import time
 import requests
+import asyncio
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 import logging
@@ -348,3 +349,81 @@ Format your response as structured analysis with clear sections."""
             score += 0.2
         
         return min(1.0, score)
+    
+    async def analyze_contract_multi_agent(self, 
+                                         contract_code: str, 
+                                         contract_name: str = "Unknown",
+                                         analysis_type: str = "comprehensive") -> Optional[Dict]:
+        """
+        Perform multi-agent analysis of smart contract code
+        
+        Args:
+            contract_code: Solidity contract source code
+            contract_name: Name of the contract
+            analysis_type: Type of analysis ('quick', 'comprehensive', 'specialized')
+            
+        Returns:
+            Multi-agent analysis results or None if not available
+        """
+        try:
+            # Try to import and use multi-agent system
+            from integrations.web3_audit_system import create_multi_agent_system
+            from slither.ai.config import get_ai_config
+            
+            ai_config = get_ai_config()
+            
+            # Check if multi-agent is enabled
+            if not ai_config.is_multi_agent_enabled():
+                logger.info("Multi-agent analysis disabled, falling back to single-agent")
+                return None
+            
+            # Create multi-agent system
+            audit_system = create_multi_agent_system(self, ai_config)
+            
+            if not audit_system.is_available():
+                logger.warning("Multi-agent system not available, using single-agent analysis")
+                return None
+            
+            logger.info(f"🤖 Starting multi-agent analysis with {len(audit_system.get_available_agents())} agents")
+            
+            # Perform multi-agent analysis
+            result = await audit_system.audit(contract_code, contract_name, analysis_type)
+            
+            if result:
+                logger.info(f"✅ Multi-agent analysis completed:")
+                logger.info(f"   - Consensus vulnerabilities: {len(result.consensus_vulnerabilities)}")
+                logger.info(f"   - Consensus score: {result.consensus_score:.2f}")
+                logger.info(f"   - Analysis time: {result.total_analysis_time:.2f}s")
+                
+                # Convert to dictionary for compatibility
+                return {
+                    'multi_agent': True,
+                    'consensus_vulnerabilities': result.consensus_vulnerabilities,
+                    'final_severity_scores': result.final_severity_scores,
+                    'attack_scenarios': result.attack_scenarios,
+                    'fix_recommendations': result.fix_recommendations,
+                    'economic_impact': result.economic_impact_assessment,
+                    'governance_risks': result.governance_risks,
+                    'consensus_score': result.consensus_score,
+                    'analysis_time': result.total_analysis_time,
+                    'models_used': result.models_used,
+                    'agent_results': [
+                        {
+                            'agent_type': agent_result.agent_type.value,
+                            'vulnerabilities': agent_result.vulnerabilities,
+                            'confidence': agent_result.confidence_score,
+                            'model_used': agent_result.model_used
+                        }
+                        for agent_result in result.agent_results
+                    ],
+                    'full_report': audit_system.generate_report(result)
+                }
+            
+            return None
+            
+        except ImportError:
+            logger.debug("Multi-agent system not available (integrations not found)")
+            return None
+        except Exception as e:
+            logger.error(f"Error in multi-agent analysis: {e}")
+            return None
